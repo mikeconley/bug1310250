@@ -2,7 +2,114 @@
 <html>
 <head>
 <title> Tab Spinners - Bug 1310250</title>
+<script src="https://telemetry.mozilla.org/v2/telemetry.js"></script>
+
+<!-- MG.js stuff --!>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="mgjs/metricsgraphics.min.js"></script>
+<link href="mgjs/metricsgraphics.css" rel="stylesheet" type="text/css">
+
+<style>
+.plot-container {
+  height: 30vh;
+  width: 95vw;
+}
+</style>
 </head>
 <body>
+<div id="proportions" class="plot-container">
+</div>
+<div id="spinners" class="plot-container">
+</div>
+<div id="switches" class="plot-container">
+</div>
+<script>
+const TAB_SPINNER = "FX_TAB_SWITCH_SPINNER_VISIBLE_MS";
+const TAB_SWITCH = "FX_TAB_SWITCH_TOTAL_E10S_MS";
+
+Telemetry.init(() => {
+  let rawVersions = Telemetry.getVersions("nightly/51", "nightly/A");
+  let versions = rawVersions.map(version => version.split("/"));
+  let data = {};
+  Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
+    Telemetry.getEvolution(channel, version, TAB_SPINNER, {e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
+      if (!("" in evolutionMap) || !evolutionMap[""]) {
+        console.error(`Failed to get tab spinner data for ${channel}/${version}`);
+        reject();
+        return;
+      }
+      let ev = evolutionMap[""].sanitized();
+      ev.map((hgram, i, date) => {
+        if (!(date in data)) {
+          data[date] = {
+            date: date,
+            spinners: hgram.count,
+            switches: 0,
+          };
+        } else {
+          data[date].spinners += hgram.count;
+        }
+      });
+
+      resolve();
+    });
+  }))).then(() => {
+    Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
+      Telemetry.getEvolution(channel, version, TAB_SWITCH, {e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
+        if (!("" in evolutionMap) || !evolutionMap[""]) {
+          console.error(`Failed to get tab switch data for ${channel}/${version}`);
+          reject();
+          return;
+        }
+        let ev = evolutionMap[""].sanitized();
+        ev.map((hgram, i, date) => {
+          if (!(date in data)) {
+            data[date] = {
+              date: date,
+              spinners: 0,
+              switches: hgram.count,
+            };
+          } else {
+            data[date].switches += hgram.count;
+          }
+        });
+
+        resolve();
+      });
+    }))).then(() => {
+      let dataArray = Object.keys(data).map(date => {
+        return {
+          date: new Date(date),
+          spinners: data[date].spinners,
+          switches: data[date].switches,
+          proportions: 1.0 * data[date].spinners / data[date].switches,
+        };
+      });
+      const PLOT_TITLES = {
+        spinners: "Number of Tab Spinners",
+        switches: "Number of Tab Switches",
+        proportions: "What % of Tab Switches see Spinners?",
+      };
+      ['spinners', 'switches', 'proportions'].forEach(plot => {
+        MG.data_graphic({
+          title: PLOT_TITLES[plot],
+          data: dataArray,
+          full_width: true,
+          full_height: true,
+          show_tooltips: false,
+          target: "#" + plot,
+          y_accessor: plot,
+          format: plot == 'proportions' ? 'percentage' : 'count',
+          //legend: LINES,
+          //legend_target: "#none",
+          utc_time: true,
+          buffer: 0,
+          interpolate: d3.curveLinear,
+        });
+      });
+    });
+  });
+});
+</script>
 </body>
 </html>
