@@ -19,9 +19,20 @@
 <body>
 <div id="proportions" class="plot-container">
 </div>
+<div id="times" class="plot-container">
+</div>
 <div id="spinners" class="plot-container">
 </div>
 <div id="switches" class="plot-container">
+</div>
+<div id="notes">
+<p><b>Notes:</b></p>
+<ul>
+<li>Spinner counts, durations are from FX_TAB_SWITCH_SPINNER_VISIBLE_MS</li>
+<li>Switch counts, durations are from FX_TAB_SWITCH_TOTAL_E10S_MS</li>
+<li>Only clients with e10s on are considered</li>
+<li>These plots start at Nightly 51 and continue to present day, on Nightly</li>
+</ul>
 </div>
 <script>
 const TAB_SPINNER = "FX_TAB_SWITCH_SPINNER_VISIBLE_MS";
@@ -44,10 +55,13 @@ Telemetry.init(() => {
           data[date] = {
             date: date,
             spinners: hgram.count,
+            spinnersSum: hgram.sum,
             switches: 0,
+            switchesSum: 0,
           };
         } else {
           data[date].spinners += hgram.count;
+          data[date].spinnersSum += hgram.sum;
         }
       });
 
@@ -67,10 +81,13 @@ Telemetry.init(() => {
             data[date] = {
               date: date,
               spinners: 0,
+              spinnsersSum: 0,
               switches: hgram.count,
+              switchesSum: hgram.sum,
             };
           } else {
             data[date].switches += hgram.count;
+            data[date].switchesSum += hgram.sum;
           }
         });
 
@@ -83,14 +100,16 @@ Telemetry.init(() => {
           spinners: data[date].spinners,
           switches: data[date].switches,
           proportions: 1.0 * data[date].spinners / data[date].switches,
+          times: 1.0 * data[date].spinnersSum / data[date].switchesSum,
         };
       });
       const PLOT_TITLES = {
         spinners: "Number of Tab Spinners",
         switches: "Number of Tab Switches",
         proportions: "What % of Tab Switches see Spinners?",
+        times: "What % of Total Switch time is Spinner time?",
       };
-      ['spinners', 'switches', 'proportions'].forEach(plot => {
+      ['spinners', 'switches', 'proportions', 'times'].forEach(plot => {
         MG.data_graphic({
           title: PLOT_TITLES[plot],
           data: dataArray,
@@ -99,7 +118,7 @@ Telemetry.init(() => {
           show_tooltips: false,
           target: "#" + plot,
           y_accessor: plot,
-          format: plot == 'proportions' ? 'percentage' : 'count',
+          format: ['proportions', 'times'].includes(plot) ? 'percentage' : 'count',
           //legend: LINES,
           //legend_target: "#none",
           utc_time: true,
