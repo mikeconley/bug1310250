@@ -2,7 +2,7 @@
 <html>
 <head>
 <title> Tab Spinners - Bug 1310250</title>
-<script src="https://telemetry.mozilla.org/v2/telemetry.js"></script>
+<script src="telemetry-mod.js"></script>
 
 <!-- MG.js stuff --!>
 <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -17,6 +17,7 @@
 </style>
 </head>
 <body>
+<h1>Nightly 51+, Linux and OS X only</h1>
 <div id="proportions" class="plot-container">
 </div>
 <div id="times" class="plot-container">
@@ -43,7 +44,7 @@ Telemetry.init(() => {
   let versions = rawVersions.map(version => version.split("/"));
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
-    Telemetry.getEvolution(channel, version, TAB_SPINNER, {e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
+    Telemetry.getEvolution(channel, version, TAB_SPINNER, {os: ["Linux", "Darwin"], e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
       if (!("" in evolutionMap) || !evolutionMap[""]) {
         console.error(`Failed to get tab spinner data for ${channel}/${version}`);
         reject();
