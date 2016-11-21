@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-<h1>Nightly 51+, Linux and OS X only</h1>
+<h1>Nightly 51+, Windows only</h1>
 <div id="proportions" class="plot-container">
 </div>
 <div id="times" class="plot-container">
@@ -44,7 +44,7 @@ Telemetry.init(() => {
   let versions = rawVersions.map(version => version.split("/"));
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
-    Telemetry.getEvolution(channel, version, TAB_SPINNER, {os_version: ["6.0"], os: ["Windows_NT"], e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
+    Telemetry.getEvolution(channel, version, TAB_SPINNER, {os: ["Windows_NT"], e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
       if (!("" in evolutionMap) || !evolutionMap[""]) {
         console.error(`Failed to get tab spinner data for ${channel}/${version}`);
         reject();
