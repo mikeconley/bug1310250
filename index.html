@@ -228,6 +228,11 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   let legend = LABELS.concat();
   legend.shift();
 
+  let markers = [{
+    "date": new Date("2016-10-20T00:00:00.000Z"),
+    "label": "a11y enabled on Windows (bug 1310788)"
+  }];
+
   MG.data_graphic({
     title: "Severity",
     description: "This line chart contains multiple lines.",
@@ -239,6 +244,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
     colors: ["green", "blue", "orange", "red", "darkred", "orange", "black"],
     legend,
     legend_target: '#severity-legend',
+    markers,
   });
 });
 
