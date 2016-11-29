@@ -4,7 +4,7 @@
 <title> Tab Spinners - Bug 1310250</title>
 <script src="https://telemetry.mozilla.org/v2/telemetry.js"></script>
 
-<!-- MG.js stuff --!>
+<!-- MG.js stuff -->
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="mgjs/metricsgraphics.min.js"></script>
 <link href="mgjs/metricsgraphics.css" rel="stylesheet" type="text/css">
@@ -13,6 +13,10 @@
 .plot-container {
   height: 30vh;
   width: 95vw;
+}
+
+#severity {
+  height: 40vh;
 }
 </style>
 </head>
@@ -26,6 +30,12 @@
 </div>
 <div id="switches" class="plot-container">
 </div>
+<div id="affected" class="plot-container">
+</div>
+<div id="severity" class="plot-container">
+</div>
+<div id="severity-legend"></div>
+
 <div id="notes">
 <p><b>Notes:</b></p>
 <ul>
@@ -38,6 +48,7 @@
 <script>
 const TAB_SPINNER = "FX_TAB_SWITCH_SPINNER_VISIBLE_MS";
 const TAB_SWITCH = "FX_TAB_SWITCH_TOTAL_E10S_MS";
+const SEVERITY_DATA_URL = "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id.json"
 
 Telemetry.init(() => {
   let rawVersions = Telemetry.getVersions("nightly/51", "nightly/A");
@@ -130,6 +141,97 @@ Telemetry.init(() => {
     });
   });
 });
+
+
+fetch(SEVERITY_DATA_URL).then((response) => {
+  return response.json();
+}).then((data) => {
+  console.log("Got severity data. Converting into something useful...");
+
+  let yyyymmdd_to_date = (yyyymmdd) => {
+    let y = yyyymmdd.substr(0,4),
+        m = yyyymmdd.substr(4,2) - 1,
+        d = yyyymmdd.substr(6,2);
+    let D = new Date(y, m, d);
+    return (D.getFullYear() == y && D.getMonth() == m && D.getDate() == d) ? D : 'invalid date';
+  };
+
+  // First, let's transform the data so that MG can use it for the affected graph.
+  let prepared_data = data.map((element) => {
+    let date = yyyymmdd_to_date(element[0]);
+    let severities = element[1];
+    let affected = 1.0 - severities[0];
+    return {
+      date,
+      affected,
+    }
+  });
+
+  // The first plot is "affected", so take 1.0, subtract the unaffected, and
+  // there you have it.
+  MG.data_graphic({
+    title: "Affected client %",
+    data: prepared_data,
+    full_width: true,
+    full_height: true,
+    show_tooltips: false,
+    target: "#affected",
+    y_accessor: "affected",
+    format: "percentage",
+    //legend: LINES,
+    //legend_target: "#none",
+    utc_time: true,
+    buffer: 0,
+    interpolate: d3.curveLinear,
+  });
+
+  // Now transform the data for our multi-line plot for severities.
+  const LABELS = [
+    "unaffected",
+    "0ms - 999ms",
+    "1000ms - 2296ms",
+    "2297ms - 5276ms",
+    "5277ms - 12123ms",
+    "12124ms - 27855ms",
+    "27856ms - 63999ms",
+    "64000ms+",
+  ];
+
+  let all_severities = [];
+  for (let i = 0; i < data.length; ++i) {
+    let build_data = data[i];
+    let date = yyyymmdd_to_date(build_data[0]);
+    let build_severities = build_data[1];
+    for (let j = 0; j < build_severities.length; ++j) {
+      if (!all_severities[j]) {
+        all_severities[j] = [];
+      }
+
+      all_severities[j].push({
+        date,
+        value: build_severities[j],
+      });
+    }
+  }
+
+  // Now get rid of unaffected, since we don't care about it.
+  all_severities.shift();
+  let legend = LABELS.concat();
+  legend.shift();
+
+  MG.data_graphic({
+    title: "Severity",
+    description: "This line chart contains multiple lines.",
+    data: all_severities,
+    full_width: true,
+    full_height: true,
+    target: '#severity',
+    colors: ["green", "blue", "orange", "red", "darkred", "orange", "black"],
+    legend,
+    legend_target: '#severity-legend',
+  });
+});
+
 </script>
 </body>
 </html>
