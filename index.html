@@ -52,6 +52,7 @@
 <li>Switch counts, durations are from FX_TAB_SWITCH_TOTAL_E10S_MS</li>
 <li>Only clients with e10s on are considered</li>
 <li>These plots start at Nightly 51 and continue to present day, on Nightly</li>
+<li>The severity percentages represent how many users fell into that bucket as their worst spinner</li>
 </ul>
 </div>
 <script>
@@ -250,8 +251,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   legend.shift();
 
   MG.data_graphic({
-    title: "Severity",
-    description: "This line chart contains multiple lines.",
+    title: "Severity %",
     data: all_severities,
     show_tooltips: false,
     full_width: true,
