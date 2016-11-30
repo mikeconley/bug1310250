@@ -177,8 +177,14 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   });
 
   let markers = [{
+    "date": new Date("2016-09-17T00:00:00.000Z"),
+    "label": "Unknown regression :( (bug 1321373)"
+  }, {
     "date": new Date("2016-09-18T00:00:00.000Z"),
     "label": "Interrupt JS added"
+  }, {
+    "date": new Date("2016-10-14T00:00:00.000Z"),
+    "label": "ForcePaint BHR stacks available"
   }, {
     "date": new Date("2016-10-20T00:00:00.000Z"),
     "label": "a11y enabled on Windows (bug 1310788)"
