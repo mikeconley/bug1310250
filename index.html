@@ -60,6 +60,26 @@ const TAB_SPINNER = "FX_TAB_SWITCH_SPINNER_VISIBLE_MS";
 const TAB_SWITCH = "FX_TAB_SWITCH_TOTAL_E10S_MS";
 const SEVERITY_DATA_URL = "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id.json"
 
+let markers = [{
+  "date": new Date("2016-09-17T00:00:00.000Z"),
+  "label": "Unknown regression :( (bug 1321373)"
+}, {
+  "date": new Date("2016-09-18T00:00:00.000Z"),
+  "label": "Interrupt JS added"
+}, {
+  "date": new Date("2016-10-14T00:00:00.000Z"),
+  "label": "ForcePaint BHR stacks available"
+}, {
+  "date": new Date("2016-10-20T00:00:00.000Z"),
+  "label": "a11y enabled on Windows (bug 1310788)"
+}, {
+  "date": new Date("2016-11-06T00:00:00.000Z"),
+  "label": "GPU process aggravates perma-spinner bug"
+}, {
+  "date": new Date("2016-11-29T00:00:00.000Z"),
+  "label": "Perma-spinner fixed (bug 1316632)"
+}];
+
 Telemetry.init(() => {
   let rawVersions = Telemetry.getVersions("nightly/51", "nightly/A");
   let versions = rawVersions.map(version => version.split("/"));
@@ -146,6 +166,7 @@ Telemetry.init(() => {
           utc_time: true,
           buffer: 0,
           interpolate: d3.curveLinear,
+          markers,
         });
       });
     });
@@ -176,26 +197,6 @@ fetch(SEVERITY_DATA_URL).then((response) => {
       affected,
     }
   });
-
-  let markers = [{
-    "date": new Date("2016-09-17T00:00:00.000Z"),
-    "label": "Unknown regression :( (bug 1321373)"
-  }, {
-    "date": new Date("2016-09-18T00:00:00.000Z"),
-    "label": "Interrupt JS added"
-  }, {
-    "date": new Date("2016-10-14T00:00:00.000Z"),
-    "label": "ForcePaint BHR stacks available"
-  }, {
-    "date": new Date("2016-10-20T00:00:00.000Z"),
-    "label": "a11y enabled on Windows (bug 1310788)"
-  }, {
-    "date": new Date("2016-11-06T00:00:00.000Z"),
-    "label": "GPU process aggravates perma-spinner bug"
-  }, {
-    "date": new Date("2016-11-29T00:00:00.000Z"),
-    "label": "Perma-spinner fixed (bug 1316632)"
-  }];
 
   // The first plot is "affected", so take 1.0, subtract the unaffected, and
   // there you have it.
