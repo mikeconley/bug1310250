@@ -257,10 +257,11 @@ fetch(SEVERITY_DATA_URL).then((response) => {
     show_tooltips: false,
     full_width: true,
     full_height: true,
-    target: '#severity',
+    format: "percentage",
+    target: "#severity",
     colors: ["green", "blue", "orange", "red", "darkred", "orange", "black"],
     legend,
-    legend_target: '#severity-legend',
+    legend_target: "#severity-legend",
     markers,
   });
 });
