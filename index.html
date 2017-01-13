@@ -15,7 +15,7 @@
   width: 95vw;
 }
 
-#severity {
+.severity {
   height: 40vh;
 }
 
@@ -41,9 +41,13 @@
 </p>
 <div id="affected" class="plot-container">
 </div>
-<div id="severity" class="plot-container">
+<div id="long-severity" class="plot-container severity">
 </div>
-<div id="severity-legend"></div>
+<div id="long-severity-legend"></div>
+
+<div id="short-severity" class="plot-container severity">
+</div>
+<div id="short-severity-legend"></div>
 
 <div id="notes">
 <p><b>Notes:</b></p>
@@ -203,7 +207,8 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   };
 
   // First, let's transform the data so that MG can use it for the affected graph.
-  let prepared_data = data.map((element) => {
+  let long_data = data["long"];
+  let prepared_long_data = long_data.map((element) => {
     let date = yyyymmdd_to_date(element[0]);
     let severities = element[1];
     let affected = 1.0 - severities[0];
@@ -217,7 +222,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   // there you have it.
   MG.data_graphic({
     title: "Affected client %",
-    data: prepared_data,
+    data: prepared_long_data,
     full_width: true,
     full_height: true,
     show_tooltips: false,
@@ -233,7 +238,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   });
 
   // Now transform the data for our multi-line plot for severities.
-  const LABELS = [
+  const LONG_LABELS = [
     "unaffected",
     "0ms - 999ms",
     "1000ms - 2296ms",
@@ -244,17 +249,17 @@ fetch(SEVERITY_DATA_URL).then((response) => {
     "64000ms+",
   ];
 
-  let all_severities = [];
-  for (let i = 0; i < data.length; ++i) {
-    let build_data = data[i];
+  let long_severities = [];
+  for (let i = 0; i < long_data.length; ++i) {
+    let build_data = long_data[i];
     let date = yyyymmdd_to_date(build_data[0]);
     let build_severities = build_data[1];
     for (let j = 0; j < build_severities.length; ++j) {
-      if (!all_severities[j]) {
-        all_severities[j] = [];
+      if (!long_severities[j]) {
+        long_severities[j] = [];
       }
 
-      all_severities[j].push({
+      long_severities[j].push({
         date,
         value: build_severities[j],
       });
@@ -262,21 +267,70 @@ fetch(SEVERITY_DATA_URL).then((response) => {
   }
 
   // Now get rid of unaffected, since we don't care about it.
-  all_severities.shift();
-  let legend = LABELS.concat();
-  legend.shift();
+  long_severities.shift();
+  let long_legend = LONG_LABELS.concat();
+  long_legend.shift();
 
   MG.data_graphic({
-    title: "Severity %",
-    data: all_severities,
+    title: "Long Severity %",
+    data: long_severities,
     show_tooltips: false,
     full_width: true,
     full_height: true,
     format: "percentage",
-    target: "#severity",
-    colors: ["green", "blue", "orange", "red", "darkred", "orange", "black"],
-    legend,
-    legend_target: "#severity-legend",
+    target: "#long-severity",
+    colors: ["green", "blue", "purple", "red", "darkred", "orange", "black"],
+    legend: long_legend,
+    legend_target: "#long-severity-legend",
+    markers,
+  });
+
+  // Now transform the data for our multi-line plot for severities.
+  const SHORT_LABELS = [
+    "unaffected",
+    "not short",
+    "0ms - 49ms",
+    "50ms - 99ms",
+    "100ms - 199ms",
+    "200ms - 399ms",
+    "400ms - 799ms",
+    "800ms - 999ms",
+  ];
+
+  let short_data = data["short"];
+  let short_severities = [];
+  for (let i = 0; i < short_data.length; ++i) {
+    let build_data = short_data[i];
+    let date = yyyymmdd_to_date(build_data[0]);
+    let build_severities = build_data[1];
+    for (let j = 0; j < build_severities.length; ++j) {
+      if (!short_severities[j]) {
+        short_severities[j] = [];
+      }
+
+      short_severities[j].push({
+        date,
+        value: build_severities[j],
+      });
+    }
+  }
+
+  // Now get rid of unaffected, and not short, since we don't care about
+  // them.
+  short_severities = short_severities.slice(2);
+  let short_legend = SHORT_LABELS.concat().slice(2);
+
+  MG.data_graphic({
+    title: "Short Severity %",
+    data: short_severities,
+    show_tooltips: false,
+    full_width: true,
+    full_height: true,
+    format: "percentage",
+    target: "#short-severity",
+    colors: ["green", "blue", "purple", "red", "darkred", "orange"],
+    legend: short_legend,
+    legend_target: "#short-severity-legend",
     markers,
   });
 });
