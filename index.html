@@ -24,10 +24,20 @@
   border-top: 1px solid #999999;
   text-align: center;
 }
+
+#branch_selector {
+  font-size: 1.0em;
+  padding-right: 25px;
+}
+
 </style>
 </head>
 <body>
-<h1><span id="selected_branch"></span> 51+, Windows only</h1>
+<h1>
+<select id="branch_selector">
+  <option value="nightly">Nightly</option>
+  <option value="aurora">Aurora</option>
+</select> 51+, Windows only</h1>
 <div id="proportions" class="plot-container">
 </div>
 <div id="times" class="plot-container">
@@ -120,6 +130,15 @@ if (!branch_data) {
   selected_branch = "nightly";
   branch_data = BRANCHES[selected_branch];
 }
+
+let branch_selector = document.getElementById("branch_selector");
+branch_selector.value = selected_branch;
+branch_selector.addEventListener("change", function onChange(e) {
+  if (branch_selector.value != selected_branch) {
+    window.location.hash = branch_selector.value;
+    window.location.reload();
+  }
+});
 
 Telemetry.init(() => {
   let rawVersions = Telemetry.getVersions(`${selected_branch}/51`, `${selected_branch}/A`);
