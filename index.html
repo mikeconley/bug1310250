@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-<h1>Nightly 51+, Windows only</h1>
+<h1><span id="selected_branch"></span> 51+, Windows only</h1>
 <div id="proportions" class="plot-container">
 </div>
 <div id="times" class="plot-container">
@@ -62,9 +62,8 @@
 <script>
 const TAB_SPINNER = "FX_TAB_SWITCH_SPINNER_VISIBLE_MS";
 const TAB_SWITCH = "FX_TAB_SWITCH_TOTAL_E10S_MS";
-const SEVERITY_DATA_URL = "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_nightly.json"
 
-let markers = [{
+const NIGHTLY_MARKERS = [{
   "date": new Date("2016-09-17T00:00:00.000Z"),
   "label": "Unknown regression :( (bug 1321373)"
 }, {
@@ -102,15 +101,36 @@ let markers = [{
   "label": "Yield GC backed out (bug 1328423)"
 }];
 
+const BRANCHES = {
+  'nightly': {
+    markers: NIGHTLY_MARKERS,
+    severity_url: "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_nightly.json",
+  },
+  'aurora': {
+    markers: [],
+    severity_url: "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_aurora.json",
+  }
+}
+
+let selected_branch = window.location.hash.slice(1);
+let branch_data = BRANCHES[selected_branch];
+
+if (!branch_data) {
+  console.error("Never heard of branch " + selected_branch + " before - switching to Nightly");
+  selected_branch = "nightly";
+  branch_data = BRANCHES[selected_branch];
+}
+
 Telemetry.init(() => {
-  let rawVersions = Telemetry.getVersions("nightly/51", "nightly/A");
+  let rawVersions = Telemetry.getVersions(`${selected_branch}/51`, `${selected_branch}/A`);
   let versions = rawVersions.map(version => version.split("/"));
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
     Telemetry.getEvolution(channel, version, TAB_SPINNER, {os: ["Windows_NT"], e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
       if (!("" in evolutionMap) || !evolutionMap[""]) {
         console.error(`Failed to get tab spinner data for ${channel}/${version}`);
-        reject();
+        //reject();
+        resolve();
         return;
       }
       let ev = evolutionMap[""].sanitized();
@@ -134,9 +154,9 @@ Telemetry.init(() => {
   }))).then(() => {
     Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
       Telemetry.getEvolution(channel, version, TAB_SWITCH, {e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
-        if (!("" in evolutionMap) || !evolutionMap[""]) {
+        if (!("" in evolutionMap) || !evolutionMap[""] || !evolutionMap[""].sanitized()) {
           console.error(`Failed to get tab switch data for ${channel}/${version}`);
-          reject();
+          resolve();
           return;
         }
         let ev = evolutionMap[""].sanitized();
@@ -188,7 +208,7 @@ Telemetry.init(() => {
           utc_time: true,
           buffer: 0,
           interpolate: d3.curveLinear,
-          markers,
+          markers: branch_data.markers,
         });
       });
     });
@@ -196,7 +216,7 @@ Telemetry.init(() => {
 });
 
 
-fetch(SEVERITY_DATA_URL).then((response) => {
+fetch(branch_data.severity_url).then((response) => {
   return response.json();
 }).then((data) => {
   console.log("Got severity data. Converting into something useful...");
@@ -237,7 +257,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
     utc_time: true,
     buffer: 0,
     interpolate: d3.curveLinear,
-    markers,
+    markers: branch_data.markers,
   });
 
   // Now transform the data for our multi-line plot for severities.
@@ -285,7 +305,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
     colors: ["green", "blue", "purple", "red", "darkred", "orange", "black"],
     legend: long_legend,
     legend_target: "#long-severity-legend",
-    markers,
+    markers: branch_data.markers,
   });
 
   // Now transform the data for our multi-line plot for severities.
@@ -334,7 +354,7 @@ fetch(SEVERITY_DATA_URL).then((response) => {
     colors: ["green", "blue", "purple", "red", "darkred", "orange"],
     legend: short_legend,
     legend_target: "#short-severity-legend",
-    markers,
+    markers: branch_data.markers,
   });
 });
 
