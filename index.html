@@ -160,7 +160,7 @@ Telemetry.init(() => {
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
     Telemetry.getEvolution(channel, version, TAB_SPINNER, {os: ["Windows_NT"], e10sEnabled: "true"}, false /* useSubmissionDate */, evolutionMap => {
-      if (!("" in evolutionMap) || !evolutionMap[""]) {
+      if (!("" in evolutionMap) || !evolutionMap[""] || !evolutionMap[""].sanitized()) {
         console.error(`Failed to get tab spinner data for ${channel}/${version}`);
         //reject();
         resolve();
