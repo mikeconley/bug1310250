@@ -26,19 +26,10 @@
   text-align: center;
 }
 
-#branch_selector {
-  font-size: 1.0em;
-  padding-right: 25px;
-}
-
 </style>
 </head>
 <body>
-<h1>
-<select id="branch_selector">
-  <option value="nightly">Nightly</option>
-  <option value="aurora">Aurora</option>
-</select> 51+, Windows only</h1>
+<h1>Nightly 51+, Windows only</h1>
 
 <div id="affected" class="plot-container">
 </div>
@@ -157,54 +148,15 @@ const NIGHTLY_MARKERS = [{
   "label": "Interrupt reflow" // Bug 1360946
 }];
 
-const AURORA_MARKERS = [{
-  "date": new Date("2016-12-19T00:00:00.000Z"),
-  "label": "Updates frozen"
-}, {
-  "date": new Date("2016-12-22T00:00:00.000Z"),
-  "label": "Updates thawed" // Bug 1325115
-}, {
-  "date": new Date("2017-01-12T00:00:00.000Z"),
-  "label": "Yield GC backed out" // Bug 1328423
-}, {
-  "date": new Date("2017-01-21T00:00:00.000Z"),
-  "label": "First activate" // Bug 1323319
-}, {
-  "date": new Date("2017-01-24T00:00:00.000Z"),
-  "label": "Uplift (53)"
-}, {
-  "date": new Date("2017-03-10T00:00:00.000Z"),
-  "label": "Uplift (54)"
-}];
-
 const BRANCHES = {
   'nightly': {
     markers: NIGHTLY_MARKERS,
     severity_url: "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_nightly.json",
   },
-  'aurora': {
-    markers: AURORA_MARKERS,
-    severity_url: "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_aurora.json",
-  }
 }
 
-let selected_branch = window.location.hash.slice(1);
+let selected_branch = "nightly";
 let branch_data = BRANCHES[selected_branch];
-
-if (!branch_data) {
-  console.error("Never heard of branch " + selected_branch + " before - switching to Nightly");
-  selected_branch = "nightly";
-  branch_data = BRANCHES[selected_branch];
-}
-
-let branch_selector = document.getElementById("branch_selector");
-branch_selector.value = selected_branch;
-branch_selector.addEventListener("change", function onChange(e) {
-  if (branch_selector.value != selected_branch) {
-    window.location.hash = branch_selector.value;
-    window.location.reload();
-  }
-});
 
 Telemetry.init(() => {
   let rawVersions = Telemetry.getVersions(`${selected_branch}/51`, `${selected_branch}/A`);
