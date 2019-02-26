@@ -313,7 +313,7 @@ fetch(branch_data.severity_url).then((response) => {
   let prepared_long_data = long_data.map((element) => {
     let date = yyyymmdd_to_date(element[0]);
     let severities = element[1];
-    let affected = 1.0 - severities[0];
+    let affected = 1.0 - severities['unaffected'];
     return {
       date,
       affected,
@@ -356,16 +356,10 @@ fetch(branch_data.severity_url).then((response) => {
     let build_data = long_data[i];
     let date = yyyymmdd_to_date(build_data[0]);
     let build_severities = build_data[1];
-    for (let j = 0; j < build_severities.length; ++j) {
-      if (!long_severities[j]) {
-        long_severities[j] = [];
-      }
-
-      long_severities[j].push({
+    long_severities.push({
         date,
-        value: build_severities[j],
+        ...build_severities,
       });
-    }
   }
 
   // Now get rid of unaffected, since we don't care about it.
@@ -382,6 +376,8 @@ fetch(branch_data.severity_url).then((response) => {
     format: "percentage",
     target: "#long-severity",
     colors: ["green", "blue", "purple", "red", "darkred", "orange", "black"],
+    y_accessor: long_legend,
+    x_accessor: 'date',
     legend: long_legend,
     legend_target: "#long-severity-legend",
     markers: branch_data.markers,
@@ -405,21 +401,14 @@ fetch(branch_data.severity_url).then((response) => {
     let build_data = short_data[i];
     let date = yyyymmdd_to_date(build_data[0]);
     let build_severities = build_data[1];
-    for (let j = 0; j < build_severities.length; ++j) {
-      if (!short_severities[j]) {
-        short_severities[j] = [];
-      }
-
-      short_severities[j].push({
+    short_severities.push({
         date,
-        value: build_severities[j],
+        ...build_severities,
       });
-    }
   }
 
   // Now get rid of unaffected, and not short, since we don't care about
   // them.
-  short_severities = short_severities.slice(2);
   let short_legend = SHORT_LABELS.concat().slice(2);
 
   MG.data_graphic({
@@ -431,6 +420,7 @@ fetch(branch_data.severity_url).then((response) => {
     format: "percentage",
     target: "#short-severity",
     colors: ["green", "blue", "purple", "red", "darkred", "orange"],
+    y_accessor: short_legend,
     legend: short_legend,
     legend_target: "#short-severity-legend",
     markers: branch_data.markers,
