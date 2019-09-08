@@ -204,7 +204,7 @@ let selected_branch = "nightly";
 let branch_data = BRANCHES[selected_branch];
 
 Telemetry.init(() => {
-  let rawVersions = Telemetry.getVersions(`${selected_branch}/51`, `${selected_branch}/A`);
+  let rawVersions = Telemetry.getVersions(`${selected_branch}/65`, `${selected_branch}/A`);
   let versions = rawVersions.map(version => version.split("/"));
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
