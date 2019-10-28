@@ -193,18 +193,10 @@ const NIGHTLY_MARKERS = [{
   "label": "No spinners before 400ms", // Bug 1575610
 }];
 
-const BRANCHES = {
-  'nightly': {
-    markers: NIGHTLY_MARKERS,
-    severity_url: "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_nightly.json",
-  },
-}
-
-let selected_branch = "nightly";
-let branch_data = BRANCHES[selected_branch];
+const TAB_SPINNER_QUERY_URL = "https://sql.telemetry.mozilla.org/api/queries/65380/results.json?api_key=GIVCzsP5muOCUA2JvuZvpg8mOZ7cNzMsvYfYOIVx";
 
 Telemetry.init(() => {
-  let rawVersions = Telemetry.getVersions(`${selected_branch}/65`, `${selected_branch}/A`);
+  let rawVersions = Telemetry.getVersions(`nightly/65`, `nightly/A`);
   let versions = rawVersions.map(version => version.split("/"));
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
@@ -290,7 +282,7 @@ Telemetry.init(() => {
           utc_time: true,
           buffer: 0,
           interpolate: d3.curveLinear,
-          markers: branch_data.markers,
+          markers: NIGHTLY_MARKERS,
         });
       });
     });
@@ -298,9 +290,9 @@ Telemetry.init(() => {
 });
 
 
-fetch(branch_data.severity_url).then((response) => {
+fetch(TAB_SPINNER_QUERY_URL).then((response) => {
   return response.json();
-}).then((data) => {
+}).then((tabSpinnerQuery) => {
   console.log("Got severity data. Converting into something useful...");
 
   let yyyymmdd_to_date = (yyyymmdd) => {
@@ -311,64 +303,47 @@ fetch(branch_data.severity_url).then((response) => {
     return (D.getFullYear() == y && D.getMonth() == m && D.getDate() == d) ? D : 'invalid date';
   };
 
-  // First, let's transform the data so that MG can use it for the affected graph.
-  let long_data = data["long"];
-  let prepared_long_data = long_data.map((element) => {
-    let date = yyyymmdd_to_date(element[0]);
-    let severities = element[1];
-    let affected = 1.0 - severities['unaffected'];
-    return {
-      date,
-      affected,
-    }
-  });
 
-  // The first plot is "affected", so take 1.0, subtract the unaffected, and
-  // there you have it.
+  // The first plot is "affected" -- percentage of clients that had any kind of tab spinner
+  const affectedPct = tabSpinnerQuery.query_result.data.rows.map(row => {
+    const date = yyyymmdd_to_date(row.build_id);
+    const nonZeroCount = Object.keys(row).filter(k => k != "build_id" && k != "count").map(k => row[k]).reduce((x,y) => x+y);
+    const pct = nonZeroCount / row['count'];
+    return {date, pct};
+  });
   MG.data_graphic({
     title: "Affected client %",
-    data: prepared_long_data,
+    data: affectedPct,
     full_width: true,
     full_height: true,
     show_tooltips: false,
     target: "#affected",
-    y_accessor: "affected",
+    y_accessor: "pct",
     format: "percentage",
     //legend: LINES,
     //legend_target: "#none",
     utc_time: true,
     buffer: 0,
     interpolate: d3.curveLinear,
-    markers: branch_data.markers,
+    markers: NIGHTLY_MARKERS,
   });
 
   // Now transform the data for our multi-line plot for severities.
-  const LONG_LABELS = [
-    "unaffected",
-    "0ms - 999ms",
-    "1000ms - 2296ms",
-    "2297ms - 5276ms",
-    "5277ms - 12123ms",
-    "12124ms - 27855ms",
-    "27856ms - 63999ms",
-    "64000ms+",
-  ];
-
-  let long_severities = [];
-  for (let i = 0; i < long_data.length; ++i) {
-    let build_data = long_data[i];
-    let date = yyyymmdd_to_date(build_data[0]);
-    let build_severities = build_data[1];
-    long_severities.push({
-        date,
-        ...build_severities,
-      });
-  }
-
-  // Now get rid of unaffected, since we don't care about it.
-  long_severities.shift();
-  let long_legend = LONG_LABELS.concat();
-  long_legend.shift();
+  const LONG_MAPPING = {
+    v_1000ms_to_2296ms: "1000ms - 2296ms",
+    v_2297ms_to_5276ms: "2297ms - 5276ms",
+    v_5277ms_to_12123ms: "5277ms - 12123ms",
+    v_12124ms_to_27855ms: "12124ms - 27855ms",
+    v_27856ms_to_63999ms: "27856ms - 63999ms",
+    v_64000ms_or_higher: "64000ms+"
+  };
+  const long_severities = tabSpinnerQuery.query_result.data.rows.map(row => {
+    const date = yyyymmdd_to_date(row.build_id);
+    const pcts = Object.keys(LONG_MAPPING).map(key => ({
+        [`${LONG_MAPPING[key]}`]: row[key] / row['count']
+    })).reduce((x, y) => Object.assign({}, x, y));
+    return {date, ...pcts};
+  });
 
   MG.data_graphic({
     title: "Long Severity %",
@@ -379,40 +354,29 @@ fetch(branch_data.severity_url).then((response) => {
     format: "percentage",
     target: "#long-severity",
     colors: ["green", "blue", "purple", "red", "darkred", "orange", "black"],
-    y_accessor: long_legend,
+    y_accessor: Object.values(LONG_MAPPING),
     x_accessor: 'date',
-    legend: long_legend,
+    legend: Object.values(LONG_MAPPING),
     legend_target: "#long-severity-legend",
-    markers: branch_data.markers,
+    markers: NIGHTLY_MARKERS,
   });
 
   // Now transform the data for our multi-line plot for severities.
-  const SHORT_LABELS = [
-    "unaffected",
-    "not short",
-    "0ms - 49ms",
-    "50ms - 99ms",
-    "100ms - 199ms",
-    "200ms - 399ms",
-    "400ms - 799ms",
-    "800ms - 999ms",
-  ];
+  const SHORT_MAPPING = {
+    v_0ms_to_49ms: "0ms - 49ms",
+    v_50ms_to_99ms: "50ms - 99ms",
+    v_100ms_to_199ms: "100ms - 199ms",
+    v_200ms_to_399ms: "200ms - 399ms",
+    v_400ms_to_799ms: "400ms - 799ms",
+  };
 
-  let short_data = data["short"];
-  let short_severities = [];
-  for (let i = 0; i < short_data.length; ++i) {
-    let build_data = short_data[i];
-    let date = yyyymmdd_to_date(build_data[0]);
-    let build_severities = build_data[1];
-    short_severities.push({
-        date,
-        ...build_severities,
-      });
-  }
-
-  // Now get rid of unaffected, and not short, since we don't care about
-  // them.
-  let short_legend = SHORT_LABELS.concat().slice(2);
+  const short_severities = tabSpinnerQuery.query_result.data.rows.map(row => {
+    const date = yyyymmdd_to_date(row.build_id);
+    const pcts = Object.keys(SHORT_MAPPING).map(key => ({
+        [`${SHORT_MAPPING[key]}`]: row[key] / row['count']
+    })).reduce((x, y) => Object.assign({}, x, y));
+    return {date, ...pcts};
+  });
 
   MG.data_graphic({
     title: "Short Severity %",
@@ -423,10 +387,11 @@ fetch(branch_data.severity_url).then((response) => {
     format: "percentage",
     target: "#short-severity",
     colors: ["green", "blue", "purple", "red", "darkred", "orange"],
-    y_accessor: short_legend,
-    legend: short_legend,
+    y_accessor: Object.values(SHORT_MAPPING),
+    x_accessor: 'date',
+    legend: Object.values(SHORT_MAPPING),
     legend_target: "#short-severity-legend",
-    markers: branch_data.markers,
+    markers: NIGHTLY_MARKERS,
   });
 });
 
