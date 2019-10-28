@@ -193,18 +193,10 @@ const NIGHTLY_MARKERS = [{
   "label": "No spinners before 400ms", // Bug 1575610
 }];
 
-const BRANCHES = {
-  'nightly': {
-    markers: NIGHTLY_MARKERS,
-    severity_url: "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_nightly.json",
-  },
-}
-
-let selected_branch = "nightly";
-let branch_data = BRANCHES[selected_branch];
+const SPINNER_SEVERITY_URL = "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/spinner-severity-generator/data/severities_by_build_id_nightly.json";
 
 Telemetry.init(() => {
-  let rawVersions = Telemetry.getVersions(`${selected_branch}/65`, `${selected_branch}/A`);
+  let rawVersions = Telemetry.getVersions(`nightly/65`, `nightly/A`);
   let versions = rawVersions.map(version => version.split("/"));
   let data = {};
   Promise.all(versions.map(([channel, version]) => new Promise((resolve, reject) => {
@@ -290,7 +282,7 @@ Telemetry.init(() => {
           utc_time: true,
           buffer: 0,
           interpolate: d3.curveLinear,
-          markers: branch_data.markers,
+          markers: NIGHTLY_MARKERS,
         });
       });
     });
@@ -298,7 +290,7 @@ Telemetry.init(() => {
 });
 
 
-fetch(branch_data.severity_url).then((response) => {
+fetch(SPINNER_SEVERITY_URL).then((response) => {
   return response.json();
 }).then((data) => {
   console.log("Got severity data. Converting into something useful...");
@@ -339,7 +331,7 @@ fetch(branch_data.severity_url).then((response) => {
     utc_time: true,
     buffer: 0,
     interpolate: d3.curveLinear,
-    markers: branch_data.markers,
+    markers: NIGHTLY_MARKERS,
   });
 
   // Now transform the data for our multi-line plot for severities.
@@ -383,7 +375,7 @@ fetch(branch_data.severity_url).then((response) => {
     x_accessor: 'date',
     legend: long_legend,
     legend_target: "#long-severity-legend",
-    markers: branch_data.markers,
+    markers: NIGHTLY_MARKERS,
   });
 
   // Now transform the data for our multi-line plot for severities.
@@ -426,7 +418,7 @@ fetch(branch_data.severity_url).then((response) => {
     y_accessor: short_legend,
     legend: short_legend,
     legend_target: "#short-severity-legend",
-    markers: branch_data.markers,
+    markers: NIGHTLY_MARKERS,
   });
 });
 
